@@ -1,0 +1,52 @@
+format_version: "7"
+default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
+project_type: other
+app:
+  envs:
+workflows:
+  go-test:
+    steps:
+    - go-list: {}
+    - golint: {}
+    - go-test: {}
+  build-and-run:
+    steps:
+    - script:
+        title: Build and Run
+        inputs:
+        - content: |-
+            #!/bin/bash
+            docker-compose up -d
+  e2e-test:
+    steps:
+    - script-runner:
+        title: Test e2e
+        deps:
+          brew:
+          - name: httpie
+          apt_get:
+          - name: httpie
+        inputs:
+        - file_path: _scripts/e2e.sh
+    - script:
+        title: Stop running app
+        inputs:
+        - content: |-
+            #!/bin/bash
+            docker-compose down
+
+  ci:
+    steps:
+    - script:
+        title: Shellcheck
+        deps:
+          brew:
+          - name: shellcheck
+        inputs:
+        - content: |-
+            #!/bin/bash
+            shellcheck _scripts/*.sh
+    after_run:
+      - go-test
+      - build-and-run
+      - e2e-test
